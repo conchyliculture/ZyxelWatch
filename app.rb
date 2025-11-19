@@ -1,5 +1,6 @@
 require 'sinatra'
 require 'prometheus/client'
+require 'prometheus/middleware/exporter'
 
 require_relative 'client'
 
@@ -21,4 +22,4 @@ end
 set :bind, '0.0.0.0'
 
 use Rack::Deflater
-use Prometheus::Client::Rack::Exporter
+use Prometheus::Middleware::Exporter, registry: prometheus
