@@ -96,9 +96,9 @@ class XGS1210Api
     ports_data = JSON.parse(_cgi_get('port_portInfo'))['data']
     links_data = JSON.parse(_cgi_get('home_linkData'))['data']
     ports_info = {}
-    1.upto(num_ports.to_i) do |port|
-      ports_info[port] = {
-        'index': port,
+    0.upto(num_ports.to_i - 1) do |port|
+      ports_info[port + 1] = {
+        'index': port + 1,
         'max_speed': PORT_TYPES[ports_data['portType'][port]],
         'name': ports_data['portType'][port],
         'physical': ports_data['isCopper'][port] == 1 ? 'copper' : 'fibre',
