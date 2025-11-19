@@ -1,7 +1,7 @@
 require 'prometheus/client'
 require 'prometheus/middleware/exporter'
 require 'rack'
-require 'rack/handler/webrick'
+require 'rackup'
 require 'json'
 
 # --- 2. The Metric Updater Middleware ---
@@ -90,7 +90,7 @@ end
 
 # Start Server on port 9292
 puts "Server running on http://localhost:4567/metrics"
-Rack::Handler::WEBrick.run(app, Port: 4567)
+Rack::Handler::WEBrick.run(app, Port: 4567, Host: '0.0.0.0')
 
 
 #require 'sinatra'
