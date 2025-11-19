@@ -1,4 +1,5 @@
 FROM ruby:3.1-slim
+RUN apt update
 RUN apt install ruby-dev
 WORKDIR /usr/src/app
 COPY Gemfile* ./
