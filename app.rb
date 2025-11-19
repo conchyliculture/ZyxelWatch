@@ -1,46 +1,141 @@
-require 'sinatra'
 require 'prometheus/client'
 require 'prometheus/middleware/exporter'
+require 'rack'
+require 'rack/handler/webrick'
+require 'json'
 
-require_relative 'client'
+# --- 2. The Metric Updater Middleware ---
+class ZyxelMetricUpdater
+  def initialize(app, zyxel_instance, tx_gauge, rx_gauge)
+    @app = app
+    @zyxel = zyxel_instance
+    @tx_gauge = tx_gauge
+    @rx_gauge = rx_gauge
+    @crc_gauge = crc_gauge
+  end
 
-# Fuck this shit
-module Rack
-  class Lint
-    def call(env = nil)
-      @app.call(env)
+  def call(env)
+    # Only trigger the update logic if the request is for /metrics
+    if env['PATH_INFO'] == '/metrics'
+      update_metrics
+    end
+
+    # Continue the request chain (hand over to Prometheus Exporter)
+    @app.call(env)
+  end
+
+  private
+
+  def update_metrics
+    # 1. Get data (ONE call per scrape)
+    data = @zyxel.get_ports_info()
+
+    # 2. Update metrics programmatically
+    data.each do |port_id, stats|
+      # Labels must be symbols or strings
+      labels = { port: port_id.to_s }
+
+      @tx_gauge.set(stats[:tx_packets], labels: labels)
+      @rx_gauge.set(stats[:rx_packets], labels: labels)
+      @crc_gauge.set(stats[:crc_errors], labels: labels)
     end
   end
 end
 
-prometheus = Prometheus::Client.registry
+# --- 3. Setup and Run ---
 
-PACKETS_RX = prometheus.gauge(
-  :client_port_packets_received_total,
-  docstring: 'Total packets received on a client port',
+# Initialize Registry and Metrics
+registry = Prometheus::Client.registry
+
+# Define Gauges with a 'port' label
+tx_packets = Prometheus::Client::Gauge.new(
+  :zyxel_port_tx_packets,
+  docstring: 'Transmitted bytes per port',
+  labels: [:port]
+)
+rx_packets = Prometheus::Client::Gauge.new(
+  :zyxel_port_rx_packets,
+  docstring: 'Received bytes per port',
   labels: [:port]
 )
 
-PACKETS_TX = prometheus.gauge(
-  :client_port_packets_transmitted_total,
-  docstring: 'Total packets transmitted from a client port',
+crc_errors = Prometheus::Client::Gauge.new(
+  :zyxel_port_crc_errors,
+  docstring: 'CRC errors per port',
   labels: [:port]
 )
 
-client = XGS1210Api.new(ENV['ZYXEL_HOST'], ENV['ZYXEL_PASSWORD'])
+# Register them
+registry.register(tx_packets)
+registry.register(rx_packets)
+registry.register(crc_errors)
 
-prometheus.collect do
-  ports_info = client.get_ports_info()
+# Initialize your object
+zyxel_device = XGS1210Api.new(ENV['ZYXEL_HOST'], ENV['ZYXEL_PASSWORD'])
 
-  ports_info.each_key do |port|
-    PACKETS_RX.set(ports_info[port][:rx_packets], labels: { port: "Port_#{port}" })
+# Configure Rack App
+app = Rack::Builder.new do
+  use Rack::Deflater
 
-    # Set the value for the TX gauge for this specific port
-    PACKETS_TX.set(ports_info[port][:tx_packets], labels: { port: "Port #{port}" })
-  end
+  # VITAL: This middleware must come BEFORE the Exporter.
+  # It updates the values, then passes the request to the Exporter.
+  use ZyxelMetricUpdater, zyxel_device, tx_packets, rx_packets, crc_errors
+
+  # The standard exporter that renders the text format
+  use Prometheus::Middleware::Exporter, registry: registry
+
+  # Fallback for other routes
+  run ->(_) { [200, { 'Content-Type' => 'text/plain' }, ['Zyxel Exporter Running...']] }
 end
 
-set :bind, '0.0.0.0'
+# Start Server on port 9292
+puts "Server running on http://localhost:4567/metrics"
+Rack::Handler::WEBrick.run(app, Port: 4567)
 
-use Rack::Deflater
-use Prometheus::Middleware::Exporter, registry: prometheus
+
+#require 'sinatra'
+#require 'prometheus/client'
+#require 'prometheus/middleware/exporter'
+#
+#require_relative 'client'
+#
+## Fuck this shit
+#module Rack
+#  class Lint
+#    def call(env = nil)
+#      @app.call(env)
+#    end
+#  end
+#end
+#
+#prometheus = Prometheus::Client.registry
+#
+#PACKETS_RX = prometheus.gauge(
+#  :client_port_packets_received_total,
+#  docstring: 'Total packets received on a client port',
+#  labels: [:port]
+#)
+#
+#PACKETS_TX = prometheus.gauge(
+#  :client_port_packets_transmitted_total,
+#  docstring: 'Total packets transmitted from a client port',
+#  labels: [:port]
+#)
+#
+#client = XGS1210Api.new(ENV['ZYXEL_HOST'], ENV['ZYXEL_PASSWORD'])
+#
+#prometheus.collect do
+#  ports_info = client.get_ports_info()
+#
+#  ports_info.each_key do |port|
+#    PACKETS_RX.set(ports_info[port][:rx_packets], labels: { port: "Port_#{port}" })
+#
+#    # Set the value for the TX gauge for this specific port
+#    PACKETS_TX.set(ports_info[port][:tx_packets], labels: { port: "Port #{port}" })
+#  end
+#end
+#
+#set :bind, '0.0.0.0'
+#
+#use Rack::Deflater
+#use Prometheus::Middleware::Exporter, registry: prometheus
