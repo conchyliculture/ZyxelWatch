@@ -4,7 +4,6 @@ require 'logger'
 
 require "mechanize"
 require "openssl"
-require "pry"
 
 def gen_csrf
   return Digest::MD5.hexdigest(Time.now.to_s)[0..15]
