@@ -3,7 +3,7 @@ require 'prometheus/client'
 
 require_relative 'client'
 
-client = XGS1210Api.new(ENV['ZYXEL_HOST'], ENV['QvTIjLJIjQ1M836']) 
+client = XGS1210Api.new(ENV['ZYXEL_HOST'], ENV['ZYXEL_PASSWORD'])
 
 prometheus = Prometheus::Client.registry
 
