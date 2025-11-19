@@ -13,19 +13,30 @@ module Rack
   end
 end
 
+PACKETS_RX = prometheus.gauge(
+  :client_port_packets_received_total,
+  docstring: 'Total packets received on a client port',
+  labels: [:port]
+)
+
+PACKETS_TX = prometheus.gauge(
+  :client_port_packets_transmitted_total,
+  docstring: 'Total packets transmitted from a client port',
+  labels: [:port]
+)
+
 client = XGS1210Api.new(ENV['ZYXEL_HOST'], ENV['ZYXEL_PASSWORD'])
 
 prometheus = Prometheus::Client.registry
 
-ports_info = client.get_ports_info()
-ports_info.each_key do |port|
-  warn "Gauging port_#{port} with #{ports_info[port][:rx_packets]}"
-  prometheus.gauge(
-    "port_#{port}_rx_packets".to_sym,
-    docstring: "Total number of packets processed by port #{port}",
-    labels: [:device]
-  ) do
-    set(client.ports_info[port][:rx_packets], labels: { device: "Port_#{port}" })
+prometheus.collect do
+  ports_info = client.get_ports_info()
+
+  ports_info.each_key do |port|
+    PACKETS_RX.set(ports_info[port][:rx_packets], labels: { port: "Port_#{port}" })
+
+    # Set the value for the TX gauge for this specific port
+    PACKETS_TX.set(ports_info[port][:tx_packets], labels: { port: "Port #{port}" })
   end
 end
 
