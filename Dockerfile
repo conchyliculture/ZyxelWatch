@@ -1,6 +1,7 @@
 FROM ruby:3.1-slim
 RUN apt update
 RUN apt install -y ruby-dev
+RUN apt install -y build-essential
 WORKDIR /usr/src/app
 COPY Gemfile* ./
 RUN bundle install
