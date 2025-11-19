@@ -4,6 +4,8 @@ require 'rack'
 require 'rackup'
 require 'json'
 
+require_relative "client"
+
 # --- 2. The Metric Updater Middleware ---
 class ZyxelMetricUpdater
   def initialize(app, zyxel_instance, tx_gauge, rx_gauge)
