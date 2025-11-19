@@ -1,5 +1,5 @@
 source 'https://rubygems.org'
 
 gem 'prometheus-client'
-gem 'rack'
+gem 'rackup'
 gem 'sinatra'
