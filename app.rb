@@ -4,6 +4,15 @@ require 'prometheus/middleware/exporter'
 
 require_relative 'client'
 
+# Fuck this shit
+module Rack
+  class Lint
+    def call(env = nil)
+      @app.call(env)
+    end
+  end
+end
+
 client = XGS1210Api.new(ENV['ZYXEL_HOST'], ENV['ZYXEL_PASSWORD'])
 
 prometheus = Prometheus::Client.registry
