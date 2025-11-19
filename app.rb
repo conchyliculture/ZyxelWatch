@@ -13,6 +13,8 @@ module Rack
   end
 end
 
+prometheus = Prometheus::Client.registry
+
 PACKETS_RX = prometheus.gauge(
   :client_port_packets_received_total,
   docstring: 'Total packets received on a client port',
@@ -26,8 +28,6 @@ PACKETS_TX = prometheus.gauge(
 )
 
 client = XGS1210Api.new(ENV['ZYXEL_HOST'], ENV['ZYXEL_PASSWORD'])
-
-prometheus = Prometheus::Client.registry
 
 prometheus.collect do
   ports_info = client.get_ports_info()
