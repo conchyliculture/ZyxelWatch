@@ -9,7 +9,7 @@ require_relative "client"
 
 # --- 2. The Metric Updater Middleware ---
 class ZyxelMetricUpdater
-  def initialize(app, zyxel_instance, tx_gauge, rx_gauge)
+  def initialize(app, zyxel_instance, tx_gauge, rx_gauge, crc_gauge)
     @app = app
     @zyxel = zyxel_instance
     @tx_gauge = tx_gauge
