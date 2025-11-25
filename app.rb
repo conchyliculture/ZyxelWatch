@@ -36,10 +36,10 @@ class ZyxelMetricUpdater
     # 2. Update metrics programmatically
     data.each do |port_id, stats|
       # Labels must be symbols or strings
-      labels = { port: port_id.to_s }
-      if ENV["ZYXEL_PORT_#{port_id}"]
-        labels[:name] = ENV["ZYXEL_PORT_#{port_id}"]
-      end
+      labels = {
+        port: port_id.to_s,
+        name: ENV["ZYXEL_PORT_#{port_id}"] || "Port #{port_id}"
+      }
 
       @tx_gauge.set(stats[:tx_packets], labels: labels)
       @rx_gauge.set(stats[:rx_packets], labels: labels)
