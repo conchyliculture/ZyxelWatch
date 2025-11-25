@@ -57,18 +57,18 @@ registry = Prometheus::Client.registry
 tx_packets = Prometheus::Client::Gauge.new(
   :zyxel_port_tx_packets,
   docstring: 'Transmitted bytes per port',
-  labels: [:port]
+  labels: [:port, :name]
 )
 rx_packets = Prometheus::Client::Gauge.new(
   :zyxel_port_rx_packets,
   docstring: 'Received bytes per port',
-  labels: [:port]
+  labels: [:port, :name]
 )
 
 crc_errors = Prometheus::Client::Gauge.new(
   :zyxel_port_crc_errors,
   docstring: 'CRC errors per port',
-  labels: [:port]
+  labels: [:port, :name]
 )
 
 # Register them
