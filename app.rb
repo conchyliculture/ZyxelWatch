@@ -37,6 +37,9 @@ class ZyxelMetricUpdater
     data.each do |port_id, stats|
       # Labels must be symbols or strings
       labels = { port: port_id.to_s }
+      if ENV["ZYXEL_PASSWORD_#{port_id}"]
+        labels[:name] = ENV["ZYXEL_PASSWORD_#{port_id}"]
+      end
 
       @tx_gauge.set(stats[:tx_packets], labels: labels)
       @rx_gauge.set(stats[:rx_packets], labels: labels)
